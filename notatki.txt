@@ -1,0 +1,282 @@
+------
+03.06.23
+Basic commands
+
+// nazwa dla routera
+conf# hostname R*
+
+// Nie laduje bledny komendy przez dlugi czas
+conf# no ip domain-lookup
+
+// Pozwala nie miezac output z inputem
+conf# line console 0
+conf# logging synchronous
+
+// Zapisać ustawienia
+# copy running-config startup-config
+
+en
+conf t
+interface g 0/
+
+ip address 90.0.0. 255.0.0.0
+
+
+---------
+Routing
+str 16
+
+Longest match 
+Zapamiętaj do końca życia, pierwszy wpis to longest match . 
+Kiedy zrobimy ping 10.1.1.1 – router przyjmuje to i sprawdza z tym co ma w tablicy routingu 
+Wpisy
+10.1.1.0/24 R3
+10.0.0.0/8 R2
+Widzimy, że największa liczba wpisów pasuje do R3
+Jesli ping zrobimy 10.3.0.3, to wpis R3 nie będzie pasować, szuka następujący wpis, to będzie 10.0.0.0/8
+
+Wariant 2, Jesli będzie takich kilka, to 
+10.1.1.0/24 via R2 , możemy dać temu wpisu AD 1
+10.1.1.0/24 via R3, temu wpisu damy AD 2, wtedy będzie miał pierwszeństwo R2
+Router doda te 2 wpisy do tblicy routingu
+Dalej ma wpływ jakość i przepustowość łącza
+Administative distanse – standartowo dla sttycznych wpisów jest AD 1 
+
+----------------- 
+02.06.2023
+Ćwiczenie 11:
+Czy możemy w Sieci Internet routować adresy prywatne ? Odpowiedź jest nie
+Odpowiedz raczej nie, bo dla protokolow routingu nie ma znaczenia, czy uzyjemy póle adresów prywatnych a adresów publicznych. Czy to będzie 10.0.0.0, albo 10.1.0.0
+W dużym Internecie Prowajderzy się umówili, że pulę adresów prywatnych nie mogą wymieniać między sobą.
+Dalczego ? 
+Zagospodarowanie (zarezerwowanie) przestrzeni adresowej IP: Adresy prywatne pozwalają na wielokrotne użycie tych samych adresów w różnych sieciach, co jest ważne ze względu na ograniczoną liczbę dostępnych adresów IPv4.
+
+Bezpieczeństwo: Użycie prywatnych adresów IP pomaga ograniczyć ekspozycję sieci na potencjalne ataki z Internetu. Ponieważ te adresy nie są routowane w Internecie, są niewidoczne i niedostępne dla osób spoza sieci lokalnej.
+
+Nieuniknione konflikty adresów: Ponieważ różne sieci mogą używać tych samych adresów prywatnych, próba routowania tych adresów w publicznym Internecie prowadziłaby do konfliktów adresów i niejednoznaczności.
+
+Ntomiast, jeśli chcemy to zrobić musimy zastosować protokół NAT, który mapuje adresy prywatne na publiczne 
+
+
+PAT – routujemy nie tylko IP, a również port
+Czyli mamy router i serwer WWW, on ma port 80, 10.0.0.1 w lokalnej przestrzeni, a na zewnątrz on ma IP 80.1.1.1 i port 8080. Wtedy każdy router na świecie będzie miał dostęp do mojego routera, który przekieruje to zapytanie do serwera.
+NAT:
+
+
+
+
+
+
+Notatki: 
+Komputer także potrzebuje default gateway, ustawiamy to tak:
+default-router 1.0.0.1
+Sposób konfiguracji:
+R1(config)#ip dhcp pool jedynka
+R1(dhcp-config)#network 1.0.0.0 255.255.255.0
+R1(dhcp-config)#default-router 1.0.0.1
+R1(dhcp-config)#dns-server 1.0.0.1
+R1(dhcp-config)#domain-name jedynka
+R1(dhcp-config)#exit
+
+NAT
+Konfiguracja:
+54:00
+    • R1(config)#ip nat inside source static 1.0.0.1 172.16.1.1 
+// To traktujemy jako wewnetrzny adres
+//172.16.1.1 jest moim globalnym adresem
+    • R1(config)#interface f0/0
+    • R1(config-if)#ip nat outside 
+    • R1(config-if)#exit
+    • R1(config)#inte
+    • R1(config)#interface f0/1
+    • R1(config-if)#ip nat inside 
+    • R1(config-if)#exit
+    • .
+    • R1(conf)# ip nat pool jedynka 172.16.1.50 172.16.1.100 netmask 255.255.255.0
+    • R1(conf)# access-list 1 permit host 1.0.0.2
+// ?
+    • R1(conf)# ip nat inside source list 1 pool jedynka overload
+// Czysty NAT, IP na poole zewnętrzną. Czyli weźmie 1 adres z poli wewnętrznej i pierwszy adres ze strony globalnej z tej pooli, które ja mu zrobiłem.
+A sens NATowi jest taki, że IPv4 nadal istnieje
+
+ip nat pool natpoola 172.16.9.50 172.16.9.100 netmask 255.255.255.0
+
+-----------
+09.06.23
+OSPF, lab 07
+5:03
+PATSZ NA STRONE 32
+LSA – Link State Advertisment  do zbudowania bazy topologii, czyli, kiedy rutery nawiązały połączenie z innym ruterem, to wysyła wszystkie informacje o sieciach, do których są podłączone, trzyma bazę danych sąsiada i dalej rozsyła do swoich sąsiadów.
+I taka informacja się rozpływa po całej domenie OSPFowej i dzięki temu wszystkie rutery mają taką samą wizję topologii
+OSPF używa algorytm SPF (Shortest Path First) na podstawie algorytmu Dijkstry. Algorytm działa tak, że stawia siebie jako root i buduje drzewo rozpinające i wylicza koszty do wszystkich docelowych sieci bez zapętel, koszt jest brany z przepustowości linku.
+
+Wymaga większe zasoby z CPU i RAM w poruwnaniu z distance-vector (RIP to używa)
+! Używa IP, protokołu 89
+
+Dlaczego robimy obszary ?
+Każdy z każdym
+
+Więc jest to protokół zasobożerny.
+Więc dzielimy na obszary.
+Wybieramy Designatet Ruter i Backup Designated router.
+Wtedy sesje w full robimy 
+
+    • R1#conf t
+    • R1(config)#router ospf 1
+// czym jest ID? Proces ID ma znaczenie tylko lokalnie na danym obszarze
+    • R1(config-router)#network 172.16.1.0 0.0.0.255 area 0
+// za pomocą tej komendy wybieramy te interfejsy, na których chcemy mieć uruchomiony OSPF
+    • R1(config-router)#network 172.16.2.0 0.0.0.255 area 0
+    • R1(config-router)#network 172.16.8.0 0.0.0.255 area 0
+    • R1(config-router)#network 1.0.0.1 0.0.0.255 area 0
+
+Full code:
+Dla R1
+conf t
+router ospf 1
+network 172.16.1.0 0.0.0.255 area 0
+network 172.16.2.0 0.0.0.255 area 0
+network 172.16.8.0 0.0.0.255 area 0
+network 1.0.0.0 0.0.0.255 area 0
+Dla R2
+conf t
+router ospf 1
+network 172.16.1.0 0.0.0.255 area 0
+network 172.16.2.0 0.0.0.255 area 0
+network 172.16.3.0 0.0.0.255 area 0
+network 2.0.0.0 0.0.0.255 area 0
+
+Dla R3
+conf t
+router ospf 1
+network 172.16.1.0 0.0.0.255 area 0
+network 172.16.3.0 0.0.0.255 area 0
+network 172.16.4.0 0.0.0.255 area 0
+network 3.0.0.0 0.0.0.255 area 0
+
+Dla R7
+conf t
+router ospf 1
+network 172.16.1.0 0.0.0.255 area 0
+network 172.16.8.0 0.0.0.255 area 0
+network 172.16.7.0 0.0.0.255 area 0
+network 7.0.0.0 0.0.0.255 area 0
+
+
+Dla projektu
+conf t
+router ospf 1
+network 90.0.0.0 0.255.255.255 area 0
+
+
+
+-------------
+10.06.23
+Switch i VLAN’y lab 10
+
+Przełączanie w warstwie 2, na bazie docelowego MAC’a
+Uczenie swtitcha na bazie MAC’a żródłowego
+
+Włącza się SWITCH
+Tablica CAM jet czysta, CAM to Content-addresable memory, ziała na zasadzie dynamicznego mapowania adresów MAC na konkretne porty switcha. Każdy switch posiada w swojej strukturze tablicę CAM, która przechowuje te mapowania.
+
+
+1.pc1→pc3 oznacza, że pc1 chce się komunikować z pc3
+2. Więc Switch bierze MAC źródłowy z portu 1, zapamiętuje, i przypisuje MAC A do portu 1
+3. Nie wie, gdzie jest destination MAC, więc wyśle pakiet od PC1 do wszystkich pozostałych portów, oprócz 1
+4. Kiedy PC3 odpowie, to Switch dowie się, jaki PC3 ma MAC i port
+
+
+
+Innymi słowami:
+Proces działania jest następujący:
+
+    1. Gdy pakiet przychodzi na port switcha, urządzenie sprawdza adres źródłowy pakietu i dodaje go do tablicy CAM wskazując port, na którym ten pakiet został otrzymany.
+    2. Następnie switch sprawdza adres docelowy pakietu. Jeżeli ten adres jest już zapisany w tablicy CAM, switch przesyła pakiet tylko na ten konkretny port, który jest skojarzony z tym adresem.
+    3. Jeśli adres docelowy nie jest jeszcze zapisany w tablicy CAM, switch przesyła pakiet, na wszystkie swoje porty (poza portem, na którym pakiet został otrzymany), a to jest tzw. flooding.
+    4. Gdy odpowiedź wraca od komputera o adresie docelowym, switch aktualizuje tablicę CAM, dodając do niej nowy adres.
+
+Powyższy proces powtarza się ciągle, co pozwala na dynamiczne śledzenie, gdzie znajdują się poszczególne komputery w sieci.
+
+Czym jest PAKIET w punkcie 3? PRZYPOMNIENIE
+Może to być na przykład ramka Ethernet
+
+
+    1. Preambułę i delimiter początku ramki (SFD) - używane do synchronizacji odbiornika i nadajnika.
+    2. Adres MAC docelowy - ten adres jest używany przez switch do przekierowania ramki do właściwego miejsca.
+    3. Adres MAC źródłowy - ten adres jest dodawany do tablicy CAM switcha.
+    4. Typ / Długość - pole informujące o typie protokołu używanego w ramce lub o długości danych.
+    5. Dane / Ładunek - tutaj są faktyczne dane, które są przesyłane, na przykład pakiet IP, segment TCP, itp.
+    6. CRC (Cyclic Redundancy Check) - to jest suma kontrolna wykorzystywana do wykrywania błędów w ramce.
+
+Więc, jeśli switch otrzyma taką ramkę Ethernet i nie znajduje adresu MAC docelowego w tablicy CAM, to przesyła tę całą ramkę na wszystkie swoje porty (oprócz portu wejściowego).
+
+Ramka Ethernet może przekazywać dane różnych protokołów, które działają na wyższych warstwach modelu OSI, zwłaszcza na warstwie sieci i transportu. Ethernet jest protokołem warstwy łącza danych (Layer 2 w modelu OSI), a dane, które przesyła, są często w postaci pakietów IP (Internet Protocol), które są protokołem warstwy sieci (Layer 3).
+
+Przykładem może być ramka Ethernet, która przesyła pakiet IP zawierający segment TCP z danymi HTTP. 
+    1. Warstwa Aplikacji: HTTP (Hypertext Transfer Protocol) - protokół używany do przesyłania danych na stronach internetowych.
+    2. Warstwa Transportu: TCP - protokół kontrolujący przesyłanie danych między dwoma punktami w sieci.
+    3. Warstwa Sieci: IP - protokół określający jak pakiet powinien być przekierowany od źródła do celu.
+    4. Warstwa Łącza Danych: Ethernet - protokół określający jak dane są fizycznie przesyłane przez sieć.
+
+
+Wracając do tematu.
+Czym jest VLAN ?
+Virtual LAN
+VLAN jest stosujemy jako podział na różne zadania
+Na bazie SWITCHa można wydzielić wirtualne sieci. Tutaj jest bardzo ważne, jaki komputer podpinasz do jakiego portu, bo VLAN działa na podstawie konkretnych portów.
+
+A co jeśli VLANów mamy 50, 100, n ?
+Więc z linków VLANowych (czyli łącze między switchami) tworzymy wirtalne połączenie i dajemy do 1 FIZYCZNEGO kabla. To się nazywa w CISCO trunk, a gdzieś indziej to się nzywa TAG
+
+
+Przystąpienie do ćwiczenia 0:26:00
+
+Krok po kroku
+    1. # show vlan
+// pokazać vlany
+
+Konfiguracja vlana zarządzającego
+    2. Sw1#conf t
+    3. Sw1(config)#interface vlan 1
+    4. Sw1(config-if)#ip address 192.168.100.10 255.255.255.0
+    5. Sw1(config-if)#no shutdown
+
+Tworzenie vlanów 00:36:00
+    1. Sw1(config)#vlan 11
+    2. Sw1(config-vlan)#name VLAN11
+    3. Sw1(config-vlan)#exit
+
+Konfiguracja portu z komputerami 00:37:00
+    1. Sw1(config)#interface fa0/2
+// wybiermy port, gdzie switch jest podlaczony do komputera
+    2. Sw1(config-if)#switchport mode access 
+    3. Sw1(config-if)#switchport access vlan 11
+Raw comands:
+switchport mode access 
+switchport access vlan 11
+
+Konfiguracja trunków między switch – switch i switch – ruter 0:40:00
+    1. Sw1#show interfaces trunk
+//pokazać tranki
+    2. Sw1(config)#interface fa0/21
+    3. Sw1(config-if)#switchport mode trunk
+
+Jak konfigurujemy ruter 0:41:00
+Musimy skonfigurowac subinterfejs i tagowanie na ruterze
+    1. R1(config)#interface g0/0.11
+    2. R1(config-subif)#encapsulation dot1Q 11
+// gdzie 11 to numer vlanu, wszystkie inne rutery też muszą skonfigurować jako dot1Q (vlan ID)
+    3. R1(config-subif)#ip address 192.168.11.1 255.255.255.0
+
+Tutaj uwaga, na domyślnych ustawieniach interface g0/0.11 jest wyłączony czyli shutdown
+I ten interfejs nie można włączyć w subinterfejsie. 
+Czyli takie coś nie zadziała:
+>interface g0/0.11
+>no shutdown
+Musisz wejść do samego interfejsu i tam zrobić no shutdown
+>interface g0/0
+>no shutdown
+
+
+
