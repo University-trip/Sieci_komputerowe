@@ -1,0 +1,17 @@
+
+...
+
+en
+conf t
+router bgp 100
+network 90.0.0.26 mask 255.255.255.252
+network 90.0.0.33 mask 255.255.255.252
+neighbor 90.0.0.30 remote-as 200
+end
+
+show ip bgp
+
+router bgp 100
+redistribute ospf 1
+
+show ip bgp 

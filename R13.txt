@@ -1,0 +1,32 @@
+enable
+conf t
+interface gigabitEthernet 0/2
+ip address 200.20.20.2 255.255.255.192
+no shutdown
+exit
+
+interface gigabitEthernet 0/0
+ip address 200.20.20.2 255.255.255.252
+no shutdown
+exit
+
+interface gigabitEthernet 0/1
+ip address 200.20.20.5 255.255.255.252
+no shutdown
+exit
+
+router rip
+version 2
+network 200.20.20.5
+network 200.20.20.2
+network 200.20.20.65
+network 200.20.20.66
+network 200.20.20.67
+
+// conf t
+// router bgp 200
+// network 200.20.20.5 mask 255.255.255.252
+// neighbor 200.20.20.6 remote-as 200
+// error - does not support internal bgp
+// show ip bgp
+
